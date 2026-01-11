@@ -103,7 +103,17 @@ cd "$INSTALL_DIR/repositories"
 # Clone the stability-ai repo manually using a reliable mirror
 if [ ! -d "stable-diffusion-stability-ai" ]; then
     echo -e "${BLUE}Cloning stable-diffusion-stability-ai manually...${NC}"
-    git clone https://github.com/AUTOMATIC1111/stablediffusion.git stable-diffusion-stability-ai
+#    git clone https://github.com/AUTOMATIC1111/stablediffusion.git stable-diffusion-stability-ai
+	# 1. Go to the repositories folder
+	cd ~/stable-diffusion-webui-forge/repositories
+
+	# 2. Cleanup
+	rm -rf stable-diffusion-stability-ai repo.zip
+	echo "Downloading CompVis Source..."
+	wget -O repo.zip https://github.com/CompVis/stable-diffusion/archive/refs/heads/main.zip
+	unzip -q repo.zip
+	mv stable-diffusion-main stable-diffusion-stability-ai
+	rm repo.zip
 fi
 
 # 7. Patching (Root & Remote Access)
