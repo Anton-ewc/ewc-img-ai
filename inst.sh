@@ -9,7 +9,7 @@ BLUE='\033[0;34m'
 GREEN='\033[0;32m'
 NC='\033[0m'
 
-echo -e "${BLUE}Executing Master v14...${NC}"
+echo -e "${BLUE}Executing Surgical Fix v15...${NC}"
 
 # 1. System Dependencies
 sudo apt update -y
@@ -27,9 +27,9 @@ conda activate forge-env
 
 # 3. CRITICAL: PyTorch for Blackwell (RTX 5060 Ti)
 pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128 --no-cache-dir
-pip install joblib svglib # Missing from previous runs
+pip install joblib svglib 
 
-# 4. Forge Source (ZIP Method - NO GIT CLONE)
+# 4. Forge Source (Clean Reinstall)
 [ -d "$INSTALL_DIR" ] && rm -rf "$INSTALL_DIR"
 wget -O forge.zip https://github.com/lllyasviel/stable-diffusion-webui-forge/archive/refs/heads/main.zip
 unzip -q forge.zip
@@ -38,9 +38,11 @@ rm forge.zip
 
 # 5. Model Download
 mkdir -p "$INSTALL_DIR/models/Stable-diffusion"
-wget -O "$INSTALL_DIR/models/Stable-diffusion/flux1-schnell-fp8.safetensors" "$MODEL_URL" --progress=bar:force
+if [ ! -f "$INSTALL_DIR/models/Stable-diffusion/flux1-schnell-fp8.safetensors" ]; then
+    wget -O "$INSTALL_DIR/models/Stable-diffusion/flux1-schnell-fp8.safetensors" "$MODEL_URL" --progress=bar:force
+fi
 
-# 6. Manual Repo Planting (Fixes the "Username for Github" loop)
+# 6. Manual Repo Planting
 mkdir -p "$INSTALL_DIR/repositories"
 cd "$INSTALL_DIR/repositories"
 # Fix Stability-AI
@@ -50,11 +52,14 @@ unzip -q sd.zip && mv stable-diffusion-main stable-diffusion-stability-ai && rm 
 wget -O assets.zip https://github.com/AUTOMATIC1111/stable-diffusion-webui-assets/archive/refs/heads/master.zip
 unzip -q assets.zip && mv stable-diffusion-webui-assets-master stable-diffusion-webui-assets && rm assets.zip
 
-# 7. Code Patching
+# 7. SURGICAL CODE PATCHING
 cd "$INSTALL_DIR"
-# Disable ALL git cloning in the Python logic
 LAUNCH_UTILS=$(find . -name "launch_utils.py" | head -n 1)
-sed -i 's/git_clone(/# git_clone(/g' "$LAUNCH_UTILS"
+
+# Fix: Only comment out lines that CALL git_clone, not the DEFINE line
+# This prevents the SyntaxError you just saw.
+sed -i '/def git_clone/!s/git_clone(/# git_clone(/g' "$LAUNCH_UTILS"
+
 # Patch webui.sh for root access
 sed -i 's/can_run_as_root=0/can_run_as_root=1/' webui.sh
 
@@ -68,11 +73,12 @@ export can_run_as_root=1
 export TORCH_CUDA_ARCH_LIST="12.0"
 export LD_PRELOAD=/lib/x86_64-linux-gnu/libtcmalloc_minimal.so.4
 cd "$INSTALL_DIR"
+# Blackwell optimized flags
 python launch.py --listen --enable-insecure-extension-access --cuda-malloc --no-half-vae
 EOT
 chmod +x run_forge.sh
 
-echo -e "${GREEN}DONE. Run with: ./run_forge.sh${NC}"
+echo -e "${GREEN}FIX COMPLETE. Run with: ./run_forge.sh${NC}"
 echo -e "${GREEN}==========================================${NC}"
 echo -e "${GREEN}       INSTALLATION COMPLETE!             ${NC}"
 echo -e "${GREEN}==========================================${NC}"
