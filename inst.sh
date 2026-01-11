@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # ==========================================
-# FLUX.1 + Forge "Perfect" Installer
-# (Fixes: Space, Nightly GPU, Missing Repo, Root)
+# FLUX.1 + Forge "Nuclear" Installer
+# (Fixes: Space, Nightly GPU, Repo Loop, Root)
 # ==========================================
 
 set -e
@@ -21,7 +21,6 @@ MODEL_DIR="$INSTALL_DIR/models/Stable-diffusion"
 MODEL_URL="https://huggingface.co/Comfy-Org/flux1-schnell/resolve/main/flux1-schnell-fp8.safetensors"
 
 # --- CRITICAL FIX: Redirect Temp Files ---
-# Forces pip to use Home folder (prevents "No space left on device")
 mkdir -p "$HOME/pip_tmp_cache"
 export TMPDIR="$HOME/pip_tmp_cache"
 echo -e "${BLUE}Redirecting temporary files to: $TMPDIR${NC}"
@@ -32,7 +31,7 @@ echo -e "${BLUE}Starting Installer...${NC}"
 echo -e "${GREEN}[1/9] Installing Dependencies...${NC}"
 git config --global http.postBuffer 524288000
 sudo apt update -y
-sudo apt install -y wget git unzip libgl1 libglib2.0-0 google-perftools
+sudo apt install -y wget git unzip libgl1 libglib2.0-0 google-perftools curl
 
 # 2. Miniconda
 if [ ! -d "$CONDA_DIR" ]; then
@@ -69,7 +68,6 @@ pip uninstall -y torch torchvision torchaudio xformers
 
 if [[ "$GPU_NAME" == *"RTX 50"* ]] || [[ "$GPU_NAME" == *"Blackwell"* ]]; then
     echo -e "${BLUE}>> Installing Nightly PyTorch (RTX 50-Series)...${NC}"
-    # --no-cache-dir prevents saving the 2GB file twice, saving space
     pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu126 --no-cache-dir
 else
     echo -e "${BLUE}>> Installing Stable PyTorch (Standard GPU)...${NC}"
@@ -95,37 +93,43 @@ else
      wget -O "$MODEL_DIR/flux1-schnell-fp8.safetensors" "$MODEL_URL" --progress=bar:force
 fi
 
-# 6. FIX: Manually Clone Missing Repository
-# This prevents the "Repository Not Found" error you saw earlier
-echo -e "${GREEN}[7/9] Fixing Broken Repositories...${NC}"
+# 6. FIX: Manually Plant the Repository + Fake Git
+# This downloads the code via ZIP (bypassing the git protocol error)
+# AND initializes a fake git repo so Forge doesn't try to download it again.
+echo -e "${GREEN}[7/9] Fixing Broken Repositories (Nuclear Method)...${NC}"
 mkdir -p "$INSTALL_DIR/repositories"
 cd "$INSTALL_DIR/repositories"
-# Clone the stability-ai repo manually using a reliable mirror
-if [ ! -d "stable-diffusion-stability-ai" ]; then
-    echo -e "${BLUE}Cloning stable-diffusion-stability-ai manually...${NC}"
-#    git clone https://github.com/AUTOMATIC1111/stablediffusion.git stable-diffusion-stability-ai
-	# 1. Go to the repositories folder
-	cd ~/stable-diffusion-webui-forge/repositories
 
-	# 2. Cleanup
-	rm -rf stable-diffusion-stability-ai repo.zip
-	echo "Downloading CompVis Source..."
-	wget -O repo.zip https://github.com/CompVis/stable-diffusion/archive/refs/heads/main.zip
-	unzip -q repo.zip
-	mv stable-diffusion-main stable-diffusion-stability-ai
-	rm repo.zip
-fi
+# Cleanup any previous broken folder
+rm -rf stable-diffusion-stability-ai repo.zip
+
+echo -e "${BLUE}Downloading CompVis Source Code...${NC}"
+# We use the CompVis mirror as it is the standard fallback
+wget -O repo.zip https://github.com/CompVis/stable-diffusion/archive/refs/heads/main.zip
+
+echo -e "${BLUE}Extracting...${NC}"
+unzip -q repo.zip
+mv stable-diffusion-main stable-diffusion-stability-ai
+rm repo.zip
+
+# CRITICAL STEP: Trick Forge into thinking this is a valid Git Repo
+echo -e "${BLUE}Creating fake Git history to satisfy installer...${NC}"
+cd stable-diffusion-stability-ai
+git init
+git config user.email "fixer@example.com"
+git config user.name "Fixer"
+git add .
+git commit -m "Manual Fix"
+echo -e "${BLUE}Repository fixed.${NC}"
 
 # 7. Patching (Root & Remote Access)
 echo -e "${GREEN}[8/9] Applying System Patches...${NC}"
 cd "$INSTALL_DIR"
 
-# Patch 1: Disable Root Check (Method A: sed replace)
-sed -i 's/if \[ $(id -u) -eq 0 \]/if [ false ]/' webui.sh
-# Patch 2: Disable Root Check (Method B: variable set)
+# Patch 1: Disable Root Check (Variable set)
 sed -i 's/can_run_as_root=0/can_run_as_root=1/' webui.sh
 
-# Patch 3: Enable Remote Access (Listen)
+# Patch 2: Enable Remote Access (Listen)
 if [ ! -f "webui-user.sh" ]; then echo '#!/bin/bash' > webui-user.sh; fi
 # Ensure args are set correctly
 if grep -q "COMMANDLINE_ARGS" webui-user.sh; then
