@@ -104,3 +104,23 @@ echo -e "${GREEN}       INSTALLATION COMPLETE!             ${NC}"
 echo -e "${GREEN}==========================================${NC}"
 echo -e "Run this command to start:"
 echo -e "${BLUE}./run_forge.sh${NC}"
+
+
+
+#cd /workspace/
+
+# 1. Enter the directory
+cd ~/stable-diffusion-webui-forge
+
+# 2. Patch webui.sh to remove the "root" check
+# We use sed to find the check (checking for id 0) and comment it out
+#sed -i 's/if \[ $(id -u) -eq 0 \]/if [ false ]/' webui.sh
+sed -i 's/can_run_as_root=0/can_run_as_root=0/' webui.sh
+
+# 3. Enable remote access (Required if you are on a headless server)
+# This adds "--listen" so you can connect from another computer
+#sed -i 's/#export COMMANDLINE_ARGS=""/export COMMANDLINE_ARGS="--listen --enable-insecure-extension-access"/' webui-user.sh
+
+# 4. Run the launcher again
+cd ..
+./run_forge.sh
