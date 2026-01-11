@@ -93,6 +93,7 @@ echo -e "Open your browser at: http://127.0.0.1:7860"
 # Optional: Ask to run immediately
 read -p "Do you want to run it now? (y/n) " -n 1 -r
 echo
+
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     ./webui.sh
 fi
