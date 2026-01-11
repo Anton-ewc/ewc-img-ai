@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # ==========================================
-# FLUX.1 + Forge "Code Patch" Installer
-# (Fixes: Git Loop, Space, Nightly GPU, Root)
+# FLUX.1 + Forge "Path Finder" Installer
+# (Fixes: Wrong Folder Path, Git Loop, Root)
 # ==========================================
 
 set -e
@@ -16,20 +16,14 @@ NC='\033[0m'
 
 # --- Paths ---
 INSTALL_DIR="$HOME/stable-diffusion-webui-forge"
-WEBUI_DIR="$INSTALL_DIR/stable-diffusion-webui"
-# Note: Forge's internal structure might be slightly different depending on version.
-# Usually it's stable-diffusion-webui-forge/modules/launch_utils.py or similar.
-# We will detect this dynamically.
 CONDA_DIR="$HOME/miniconda3"
-MODEL_DIR="$INSTALL_DIR/models/Stable-diffusion"
 MODEL_URL="https://huggingface.co/Comfy-Org/flux1-schnell/resolve/main/flux1-schnell-fp8.safetensors"
 
 # --- CRITICAL FIX: Redirect Temp Files ---
 mkdir -p "$HOME/pip_tmp_cache"
 export TMPDIR="$HOME/pip_tmp_cache"
-echo -e "${BLUE}Redirecting temporary files to: $TMPDIR${NC}"
 
-echo -e "${BLUE}Starting Installer (v8 - Patch Edition)...${NC}"
+echo -e "${BLUE}Starting Installer (v9 - Path Fix Edition)...${NC}"
 
 # 1. System Prep
 echo -e "${GREEN}[1/10] Installing Dependencies...${NC}"
@@ -66,7 +60,6 @@ fi
 GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader)
 echo -e "${YELLOW}Detected GPU: $GPU_NAME${NC}"
 
-# Clean previous failed attempts
 pip cache purge
 pip uninstall -y torch torchvision torchaudio xformers
 
@@ -82,7 +75,6 @@ fi
 echo -e "${GREEN}[5/10] Installing WebUI Forge...${NC}"
 if [ -d "$INSTALL_DIR" ]; then rm -rf "$INSTALL_DIR"; fi
 
-# Use ZIP method to be safer against network drops
 wget -O forge.zip https://github.com/lllyasviel/stable-diffusion-webui-forge/archive/refs/heads/main.zip
 unzip -q forge.zip
 mv stable-diffusion-webui-forge-main "$INSTALL_DIR"
@@ -90,50 +82,57 @@ rm forge.zip
 
 # 5. Download Model
 echo -e "${GREEN}[6/10] Downloading FLUX Model...${NC}"
+# Correct path for model is inside the inner webui folder usually, but we check both
+MODEL_DIR="$INSTALL_DIR/models/Stable-diffusion"
 mkdir -p "$MODEL_DIR"
+
 if [ -f "$MODEL_DIR/flux1-schnell-fp8.safetensors" ] && [ $(stat -c%s "$MODEL_DIR/flux1-schnell-fp8.safetensors") -gt 10000000000 ]; then
      echo -e "${BLUE}Model seems valid. Skipping.${NC}"
 else
      wget -O "$MODEL_DIR/flux1-schnell-fp8.safetensors" "$MODEL_URL" --progress=bar:force
 fi
 
-# 6. FIX: Manual Repo Download
-echo -e "${GREEN}[7/10] Manually Downloading 'stable-diffusion' Repo...${NC}"
-# Depending on Forge version, the repositories folder is usually here:
-REPO_DIR="$INSTALL_DIR/repositories"
-mkdir -p "$REPO_DIR"
-cd "$REPO_DIR"
-rm -rf stable-diffusion-stability-ai
+# 6. FIX: FIND THE CORRECT REPOSITORIES FOLDER AUTOMATICALLY
+echo -e "${GREEN}[7/10] Locating 'repositories' folder...${NC}"
 
-# Download CompVis source (Works reliably)
+# We use 'find' to locate the folder because it might be nested
+REPO_PARENT=$(find "$INSTALL_DIR" -type d -name "repositories" | head -n 1)
+
+if [ -z "$REPO_PARENT" ]; then
+    # If not found, create it where the logs suggested it should be
+    echo -e "${YELLOW}Repositories folder not found. Creating it manually...${NC}"
+    REPO_PARENT="$INSTALL_DIR/stable-diffusion-webui/repositories"
+    mkdir -p "$REPO_PARENT"
+fi
+
+echo -e "${BLUE}Found repositories folder at: $REPO_PARENT${NC}"
+cd "$REPO_PARENT"
+
+# Cleanup
+rm -rf stable-diffusion-stability-ai repo.zip
+
+echo -e "${BLUE}Manually Downloading Repo...${NC}"
 wget -O repo.zip https://github.com/CompVis/stable-diffusion/archive/refs/heads/main.zip
 unzip -q repo.zip
 mv stable-diffusion-main stable-diffusion-stability-ai
 rm repo.zip
 
 # 7. CRITICAL FIX: Patch the Python Code
-# We perform "brain surgery" on launch_utils.py to DISABLE the command causing the loop.
 echo -e "${GREEN}[8/10] Patching Installer to SKIP Git Clone...${NC}"
 
-# Locate the file dynamically as it moves between versions
+# Find launch_utils.py wherever it is hiding
 LAUNCH_UTILS=$(find "$INSTALL_DIR" -name "launch_utils.py" | head -n 1)
 
 if [ -f "$LAUNCH_UTILS" ]; then
     echo -e "${BLUE}Patching file: $LAUNCH_UTILS${NC}"
-    
-    # Search for the specific line that clones "stable-diffusion-stability-ai" and comment it out (#)
-    # The regex looks for 'git_clone(stable_diffusion_repo' and replaces it with '# git_clone(stable_diffusion_repo'
+    # Comment out the git_clone command for stability-ai
     sed -i 's/git_clone(stable_diffusion_repo/# git_clone(stable_diffusion_repo/' "$LAUNCH_UTILS"
-    
-    # Also patch the "taming-transformers" repo just in case, as it often fails too
-    sed -i 's/git_clone(taming_transformers_repo/# git_clone(taming_transformers_repo/' "$LAUNCH_UTILS"
-    
-    echo -e "${BLUE}Patch applied! The installer will now ignore the broken download link.${NC}"
+    echo -e "${BLUE}Patch applied!${NC}"
 else
     echo -e "${RED}WARNING: Could not find launch_utils.py to patch.${NC}"
 fi
 
-# 8. Patching (Root & Remote Access)
+# 8. Patching System
 echo -e "${GREEN}[9/10] Applying System Patches...${NC}"
 cd "$INSTALL_DIR"
 sed -i 's/can_run_as_root=0/can_run_as_root=1/' webui.sh
@@ -162,7 +161,6 @@ EOT
 chmod +x run_forge.sh
 
 echo -e "${GREEN}SUCCESS! Run with: ./run_forge.sh${NC}"
-
 echo -e "${GREEN}==========================================${NC}"
 echo -e "${GREEN}       INSTALLATION COMPLETE!             ${NC}"
 echo -e "${GREEN}==========================================${NC}"
