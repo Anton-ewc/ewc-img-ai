@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # ==========================================
-# FLUX.1 + Forge "Path Finder" Installer
-# (Fixes: Wrong Folder Path, Git Loop, Root)
+# FLUX.1 + Forge "Final Fix" Installer
+# (Fixes: Folder Names, Missing Launch.py, Git Loops)
 # ==========================================
 
 set -e
@@ -15,7 +15,8 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 # --- Paths ---
-INSTALL_DIR="$HOME/stable-diffusion-webui-forge"
+# We install to a generic name to avoid path confusion
+INSTALL_DIR="$HOME/forge"
 CONDA_DIR="$HOME/miniconda3"
 MODEL_URL="https://huggingface.co/Comfy-Org/flux1-schnell/resolve/main/flux1-schnell-fp8.safetensors"
 
@@ -23,17 +24,17 @@ MODEL_URL="https://huggingface.co/Comfy-Org/flux1-schnell/resolve/main/flux1-sch
 mkdir -p "$HOME/pip_tmp_cache"
 export TMPDIR="$HOME/pip_tmp_cache"
 
-echo -e "${BLUE}Starting Installer (v9 - Path Fix Edition)...${NC}"
+echo -e "${BLUE}Starting Installer (v10 - Robust Edition)...${NC}"
 
 # 1. System Prep
-echo -e "${GREEN}[1/10] Installing Dependencies...${NC}"
+echo -e "${GREEN}[1/11] Installing Dependencies...${NC}"
 git config --global http.postBuffer 524288000
 sudo apt update -y
 sudo apt install -y wget git unzip libgl1 libglib2.0-0 google-perftools curl
 
 # 2. Miniconda
 if [ ! -d "$CONDA_DIR" ]; then
-    echo -e "${GREEN}[2/10] Installing Miniconda...${NC}"
+    echo -e "${GREEN}[2/11] Installing Miniconda...${NC}"
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
     bash miniconda.sh -b -p "$CONDA_DIR"
     rm miniconda.sh
@@ -44,22 +45,22 @@ source "$CONDA_DIR/bin/activate"
 if { conda env list | grep -q 'forge-env'; }; then
     echo -e "${BLUE}Environment exists. Skipping creation.${NC}"
 else
-    echo -e "${GREEN}[3/10] Creating Environment...${NC}"
+    echo -e "${GREEN}[3/11] Creating Environment...${NC}"
     conda create -n forge-env python=3.10 -y
 fi
 
 conda activate forge-env
 
-# 3. Hardware Detection & Installation
-echo -e "${GREEN}[4/10] Detecting GPU...${NC}"
+# 3. Hardware Detection
+echo -e "${GREEN}[4/11] Detecting GPU...${NC}"
 if ! command -v nvidia-smi &> /dev/null; then
     echo -e "${RED}Error: NVIDIA drivers missing.${NC}"
     exit 1
 fi
-
 GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader)
 echo -e "${YELLOW}Detected GPU: $GPU_NAME${NC}"
 
+# Clean old torch
 pip cache purge
 pip uninstall -y torch torchvision torchaudio xformers
 
@@ -71,18 +72,34 @@ else
     pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 --no-cache-dir
 fi
 
-# 4. Install Forge
-echo -e "${GREEN}[5/10] Installing WebUI Forge...${NC}"
+# 4. Install Forge (Robust Method)
+echo -e "${GREEN}[5/11] Installing WebUI Forge...${NC}"
+# Delete old folder to ensure clean install
 if [ -d "$INSTALL_DIR" ]; then rm -rf "$INSTALL_DIR"; fi
+if [ -d "stable-diffusion-webui-forge-main" ]; then rm -rf "stable-diffusion-webui-forge-main"; fi
 
+# Download ZIP
+echo -e "${BLUE}Downloading Source Code...${NC}"
 wget -O forge.zip https://github.com/lllyasviel/stable-diffusion-webui-forge/archive/refs/heads/main.zip
 unzip -q forge.zip
-mv stable-diffusion-webui-forge-main "$INSTALL_DIR"
+
+# DYNAMIC FOLDER DETECTION: Find what the zip actually extracted
+EXTRACTED_DIR=$(ls -d stable-diffusion-webui-forge-* | head -n 1)
+echo -e "${BLUE}Found extracted folder: $EXTRACTED_DIR${NC}"
+
+# Rename to our install dir
+mv "$EXTRACTED_DIR" "$INSTALL_DIR"
 rm forge.zip
 
+# Verify Launch.py exists
+if [ ! -f "$INSTALL_DIR/launch.py" ]; then
+    echo -e "${RED}CRITICAL ERROR: launch.py not found in $INSTALL_DIR${NC}"
+    echo -e "${RED}Installation failed. Please check the logs.${NC}"
+    exit 1
+fi
+
 # 5. Download Model
-echo -e "${GREEN}[6/10] Downloading FLUX Model...${NC}"
-# Correct path for model is inside the inner webui folder usually, but we check both
+echo -e "${GREEN}[6/11] Downloading FLUX Model...${NC}"
 MODEL_DIR="$INSTALL_DIR/models/Stable-diffusion"
 mkdir -p "$MODEL_DIR"
 
@@ -92,63 +109,64 @@ else
      wget -O "$MODEL_DIR/flux1-schnell-fp8.safetensors" "$MODEL_URL" --progress=bar:force
 fi
 
-# 6. FIX: FIND THE CORRECT REPOSITORIES FOLDER AUTOMATICALLY
-echo -e "${GREEN}[7/10] Locating 'repositories' folder...${NC}"
+# 6. FIX: Create Repositories (Double Placement Strategy)
+echo -e "${GREEN}[7/11] Pre-installing 'stable-diffusion' Repo...${NC}"
+# We will put the repo in BOTH possible locations to prevent errors
+REPO_PATH_1="$INSTALL_DIR/repositories"
+REPO_PATH_2="$INSTALL_DIR/stable-diffusion-webui/repositories"
 
-# We use 'find' to locate the folder because it might be nested
-REPO_PARENT=$(find "$INSTALL_DIR" -type d -name "repositories" | head -n 1)
-
-if [ -z "$REPO_PARENT" ]; then
-    # If not found, create it where the logs suggested it should be
-    echo -e "${YELLOW}Repositories folder not found. Creating it manually...${NC}"
-    REPO_PARENT="$INSTALL_DIR/stable-diffusion-webui/repositories"
-    mkdir -p "$REPO_PARENT"
-fi
-
-echo -e "${BLUE}Found repositories folder at: $REPO_PARENT${NC}"
-cd "$REPO_PARENT"
-
-# Cleanup
-rm -rf stable-diffusion-stability-ai repo.zip
-
-echo -e "${BLUE}Manually Downloading Repo...${NC}"
+# Download Repo ZIP once
 wget -O repo.zip https://github.com/CompVis/stable-diffusion/archive/refs/heads/main.zip
 unzip -q repo.zip
 mv stable-diffusion-main stable-diffusion-stability-ai
-rm repo.zip
 
-# 7. CRITICAL FIX: Patch the Python Code
-echo -e "${GREEN}[8/10] Patching Installer to SKIP Git Clone...${NC}"
+# Place in Root Repositories
+mkdir -p "$REPO_PATH_1"
+cp -r stable-diffusion-stability-ai "$REPO_PATH_1/"
 
-# Find launch_utils.py wherever it is hiding
+# Place in Nested Repositories (just in case)
+mkdir -p "$REPO_PATH_2"
+cp -r stable-diffusion-stability-ai "$REPO_PATH_2/"
+
+# Cleanup source
+rm -rf stable-diffusion-stability-ai repo.zip
+
+echo -e "${BLUE}Repository planted in valid locations.${NC}"
+
+# 7. CRITICAL FIX: Patch Python Code (Disable Git)
+echo -e "${GREEN}[8/11] Patching Installer to SKIP Git Clone...${NC}"
+
+# Find launch_utils.py
 LAUNCH_UTILS=$(find "$INSTALL_DIR" -name "launch_utils.py" | head -n 1)
 
 if [ -f "$LAUNCH_UTILS" ]; then
-    echo -e "${BLUE}Patching file: $LAUNCH_UTILS${NC}"
-    # Comment out the git_clone command for stability-ai
+    echo -e "${BLUE}Patching: $LAUNCH_UTILS${NC}"
+    # Comment out git_clone commands
     sed -i 's/git_clone(stable_diffusion_repo/# git_clone(stable_diffusion_repo/' "$LAUNCH_UTILS"
-    echo -e "${BLUE}Patch applied!${NC}"
+    sed -i 's/git_clone(taming_transformers_repo/# git_clone(taming_transformers_repo/' "$LAUNCH_UTILS"
+    sed -i 's/git_clone(k_diffusion_repo/# git_clone(k_diffusion_repo/' "$LAUNCH_UTILS"
+    sed -i 's/git_clone(codeformer_repo/# git_clone(codeformer_repo/' "$LAUNCH_UTILS"
+    sed -i 's/git_clone(blip_repo/# git_clone(blip_repo/' "$LAUNCH_UTILS"
 else
-    echo -e "${RED}WARNING: Could not find launch_utils.py to patch.${NC}"
+    echo -e "${RED}Warning: launch_utils.py not found.${NC}"
 fi
 
 # 8. Patching System
-echo -e "${GREEN}[9/10] Applying System Patches...${NC}"
+echo -e "${GREEN}[9/11] Applying Root/Network Patches...${NC}"
 cd "$INSTALL_DIR"
 sed -i 's/can_run_as_root=0/can_run_as_root=1/' webui.sh
 
 if [ ! -f "webui-user.sh" ]; then echo '#!/bin/bash' > webui-user.sh; fi
-if grep -q "COMMANDLINE_ARGS" webui-user.sh; then
-    sed -i 's/export COMMANDLINE_ARGS=.*/export COMMANDLINE_ARGS="--listen --enable-insecure-extension-access"/' webui-user.sh
-else
-    echo 'export COMMANDLINE_ARGS="--listen --enable-insecure-extension-access"' >> webui-user.sh
-fi
+# Always overwrite args to be safe
+sed -i '/export COMMANDLINE_ARGS/d' webui-user.sh
+echo 'export COMMANDLINE_ARGS="--listen --enable-insecure-extension-access"' >> webui-user.sh
 
 # 9. Cleanup
-echo -e "${BLUE}Cleaning up...${NC}"
+echo -e "${GREEN}[10/11] Cleaning Temp Files...${NC}"
 rm -rf "$HOME/pip_tmp_cache"
 
 # 10. Launcher
+echo -e "${GREEN}[11/11] Creating Launcher...${NC}"
 cd "$HOME"
 cat <<EOT > run_forge.sh
 #!/bin/bash
@@ -165,5 +183,5 @@ echo -e "${GREEN}==========================================${NC}"
 echo -e "${GREEN}       INSTALLATION COMPLETE!             ${NC}"
 echo -e "${GREEN}==========================================${NC}"
 echo -e "Run this command to start:"
-echo -e "${BLUE}./run_forge.sh${NC}"
+
 echo -e "${GREEN} URL: http://<YOUR_IP>:7860"
