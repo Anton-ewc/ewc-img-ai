@@ -152,7 +152,7 @@ else
     conda activate forge-env
     cd "$INSTALLS_DIR"
     # Force Git updates to use HTTP 1.1 inside the app too
-    git config --global http.version HTTP/1.1
+    #git config --global http.version HTTP/1.1
     ./webui.sh
 EOT
 chmod +x "$INSTALLS_DIR/run_forge.sh"
