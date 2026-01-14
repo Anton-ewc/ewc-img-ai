@@ -45,7 +45,7 @@ sudo apt install -y wget git unzip libgl1 libglib2.0-0 google-perftools curl pkg
 sudo apt install -y build-essential python3-dev libjpeg-dev zlib1g-dev libpng-dev libtiff-dev libfreetype6-dev liblcms2-dev libwebp-dev libharfbuzz-dev libfribidi-dev libxcb1-dev
 
 python3 -m pip install --upgrade pip setuptools wheel
-pip install Pillow
+pip install joblib Pillow
 
 # 2. CRITICAL GIT FIXES (Solves "curl 92" and "RPC failed")
 echo -e "${GREEN}[2/7] Applying Git Network Fixes (Force HTTP/1.1)...${NC}"
