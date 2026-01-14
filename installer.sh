@@ -137,20 +137,25 @@ else
     wget -c -O "$MODEL_DIR/flux1-schnell-fp8.safetensors" "$MODEL_URL" --progress=bar:force --tries=5
 fi
 
-exit 1
+
 
 # 7. Create Launcher
 echo -e "${GREEN}[7/7] Creating launcher...${NC}"
-cat <<EOT > run_forge.sh
-#!/bin/bash
-source "$CONDA_DIR/bin/activate"
-conda activate forge-env
-cd "$INSTALL_DIR"
-# Force Git updates to use HTTP 1.1 inside the app too
-git config --global http.version HTTP/1.1
-./webui.sh
+if [ -f "$INSTALLS_DIR/run_forge.sh" ]; then
+    echo -e "${BLUE}Launcher already exists. Skipping.${NC}"
+else
+    exit 1
+    cat <<EOT > run_forge.sh
+    #!/bin/bash
+    source "$CONDA_DIR/bin/activate"
+    conda activate forge-env
+    cd "$INSTALLS_DIR"
+    # Force Git updates to use HTTP 1.1 inside the app too
+    git config --global http.version HTTP/1.1
+    ./webui.sh
 EOT
-
+fi
+exit 1
 chmod +x run_forge.sh
 
 echo -e "${GREEN}==========================================${NC}"
