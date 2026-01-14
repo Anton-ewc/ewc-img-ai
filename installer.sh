@@ -23,7 +23,8 @@ INSTALLS_DIR="$HOME_DIR"
 
 echo "Current dir: ${CURRENT_DIR}"
 echo "Home dir: ${HOME_DIR}"
-echo "Installations dir: ${INSTALLS_DIR}"
+echo -e "${GREEN}Installations dir: ${INSTALLS_DIR}${NC}"
+echo ""
 
 # Paths
 DEFFUSION_DIR="$INSTALLS_DIR/stable-diffusion-webui-forge"
@@ -45,7 +46,6 @@ git config --global http.postBuffer 524288000
 git config --global http.lowSpeedLimit 0
 git config --global http.lowSpeedTime 999999
 
-exit 1
 # 3. Install Miniconda
 if [ ! -d "$CONDA_DIR" ]; then
     echo -e "${GREEN}[3/7] Installing Miniconda...${NC}"
@@ -59,6 +59,7 @@ else
     echo -e "${BLUE}Miniconda already installed.${NC}"
 fi
 
+exit 1
 #source "$HOME/miniconda3/bin/activate"
 source "$CONDA_DIR/bin/activate"
 
