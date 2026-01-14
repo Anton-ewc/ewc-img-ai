@@ -95,13 +95,13 @@ eval "$($CONDA_DIR/bin/conda shell.bash hook)"
 conda activate $ENV_NAME
 
 
-if [ ! -d "$INSTALL_DIR" ]; then
+if [ ! -d "$DEFFUSION_DIR" ]; then
     echo -e "${GREEN}[5/7] Downloading WebUI Forge...${NC}"
 
     #git clone --depth 1 https://github.com/lllyasviel/stable-diffusion-webui-forge.git "$INSTALL_DIR"
     # Attempt 1: Git Clone (Optimized)
     #if git clone --depth 1 https://github.com/lllyasviel/stable-diffusion-webui-forge.git "$HOME/stable-diffusion-webui-forge"; then
-    if git clone --depth 1 https://github.com/lllyasviel/stable-diffusion-webui-forge.git "$INSTALL_DIR"; then
+    if git clone --depth 1 https://github.com/lllyasviel/stable-diffusion-webui-forge.git "$DEFFUSION_DIR"; then
         echo -e "${BLUE}Git clone successful.${NC}"
     else
         echo -e "${RED}Git clone failed again. Switching to ZIP download method...${NC}"
@@ -109,7 +109,7 @@ if [ ! -d "$INSTALL_DIR" ]; then
         # Attempt 2: ZIP Download (Bypasses Git Protocol completely)
         wget -O forge.zip https://github.com/lllyasviel/stable-diffusion-webui-forge/archive/refs/heads/main.zip
         unzip forge.zip
-        mv stable-diffusion-webui-forge-main "$INSTALL_DIR"
+        mv stable-diffusion-webui-forge-main "$DEFFUSION_DIR"
         rm forge.zip
         echo -e "${BLUE}ZIP installation successful.${NC}"
     fi
