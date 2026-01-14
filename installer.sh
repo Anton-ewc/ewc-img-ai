@@ -51,7 +51,7 @@ git config --global http.lowSpeedTime 999999
 
 # 3. Install Miniconda
 if [ ! -d "$CONDA_DIR" ]; then
-    echo -e "${GREEN}[3/7] Installing Miniconda...${NC}"
+    echo -e "${BLUE}[3/7] Installing Miniconda...${NC}"
 	wget -qO - https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh | bash -s --
     #wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
     #bash miniconda.sh -b -p "$HOME/miniconda3"
@@ -59,7 +59,7 @@ if [ ! -d "$CONDA_DIR" ]; then
     #bash miniconda.sh -b -p "$HOME/miniconda3"
     #rm miniconda.sh
 else
-    echo -e "${BLUE}[3/7]Miniconda already installed.${NC}"
+    echo -e "${GREEN}[3/7]Miniconda already installed.${NC}"
 fi
 
 
