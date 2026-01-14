@@ -31,6 +31,7 @@ DEFFUSION_DIR="$INSTALLS_DIR/stable-diffusion-webui-forge"
 CONDA_DIR="$INSTALLS_DIR/miniconda3"
 MODEL_DIR="$DEFFUSION_DIR/models/Stable-diffusion"
 MODEL_URL="https://huggingface.co/Comfy-Org/flux1-schnell/resolve/main/flux1-schnell-fp8.safetensors"
+PYTHON_VERSION="3.10"
 
 echo -e "${BLUE}Starting Final Fix Installer...${NC}"
 
@@ -59,40 +60,68 @@ else
     echo -e "${BLUE}Miniconda already installed.${NC}"
 fi
 
-exit 1
-#source "$HOME/miniconda3/bin/activate"
-source "$CONDA_DIR/bin/activate"
+
+if [ -z "$CONDA_DEFAULT_ENV" ]; then
+    echo "${BLUE}No Conda environment is active.${NC}"
+    echo "${BLUE}Activating Conda.${NC}"
+	#source "$HOME/miniconda3/bin/activate"
+	source "$CONDA_DIR/bin/activate"
+else
+    echo "Active environment: $CONDA_DEFAULT_ENV"
+    echo "Location: $CONDA_PREFIX"
+fi
 
 # 4. Create Environment
 if { conda env list | grep -q 'forge-env'; }; then
     echo -e "${BLUE}Environment 'forge-env' exists. Skipping.${NC}"
 else
     echo -e "${GREEN}[4/7] Creating Python 3.10 environment...${NC}"
-    conda create -n forge-env python=3.10 -y
+    conda create -n forge-env python=$PYTHON_VERSION -y
 fi
+
+if { conda list -n forge | grep "python" | grep -q $PYTHON_VERSION; }; then
+    echo -e "${BLUE}Python $PYTHON_VERSION is already installed. Skipping.${NC}"
+else
+    echo -e "${GREEN}[4/7] Installing Python $PYTHON_VERSION...${NC}"
+    conda install python=$PYTHON_VERSION -y
+fi
+
+conda activate forge-env
+
+if [ ! -d "$INSTALL_DIR" ]; then
+    echo -e "${GREEN}[5/7] Downloading WebUI Forge...${NC}"
+    
+    #git clone --depth 1 https://github.com/lllyasviel/stable-diffusion-webui-forge.git "$INSTALL_DIR"
+    # Attempt 1: Git Clone (Optimized)
+    #if git clone --depth 1 https://github.com/lllyasviel/stable-diffusion-webui-forge.git "$HOME/stable-diffusion-webui-forge"; then
+    if git clone --depth 1 https://github.com/lllyasviel/stable-diffusion-webui-forge.git "$INSTALL_DIR"; then
+        echo -e "${BLUE}Git clone successful.${NC}"
+    else
+        echo -e "${RED}Git clone failed again. Switching to ZIP download method...${NC}"
+        
+        # Attempt 2: ZIP Download (Bypasses Git Protocol completely)
+        wget -O forge.zip https://github.com/lllyasviel/stable-diffusion-webui-forge/archive/refs/heads/main.zip
+        unzip forge.zip
+        mv stable-diffusion-webui-forge-main "$INSTALL_DIR"
+        rm forge.zip
+        echo -e "${BLUE}ZIP installation successful.${NC}"
+    fi
+else
+    echo -e "${BLUE}WebUI Forge already exists. Skipping.${NC}"
+fi
+
+exit 1
+
 
 # 5. Download WebUI Forge (The "Fail-Safe" Method)
-echo -e "${GREEN}[5/7] Downloading WebUI Forge...${NC}"
+#echo -e "${GREEN}[5/7] Downloading WebUI Forge...${NC}"
 
 # Remove previous broken attempts
-if [ -d "$INSTALL_DIR" ]; then
-    rm -rf "$INSTALL_DIR"
-fi
+#if [ -d "$INSTALL_DIR" ]; then
+#    rm -rf "$INSTALL_DIR"
+#fi
 
-# Attempt 1: Git Clone (Optimized)
-#if git clone --depth 1 https://github.com/lllyasviel/stable-diffusion-webui-forge.git "$HOME/stable-diffusion-webui-forge"; then
-if git clone --depth 1 https://github.com/lllyasviel/stable-diffusion-webui-forge.git "$INSTALL_DIR"; then
-    echo -e "${BLUE}Git clone successful.${NC}"
-else
-    echo -e "${RED}Git clone failed again. Switching to ZIP download method...${NC}"
-    
-    # Attempt 2: ZIP Download (Bypasses Git Protocol completely)
-    wget -O forge.zip https://github.com/lllyasviel/stable-diffusion-webui-forge/archive/refs/heads/main.zip
-    unzip forge.zip
-    mv stable-diffusion-webui-forge-main "$INSTALL_DIR"
-    rm forge.zip
-    echo -e "${BLUE}ZIP installation successful.${NC}"
-fi
+
 
 # 6. Download FLUX Model
 echo -e "${GREEN}[6/7] Downloading FLUX.1 [schnell] Model...${NC}"
