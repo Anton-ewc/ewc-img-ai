@@ -75,9 +75,11 @@ fi
 if { conda env list | grep -q 'forge-env'; }; then
     echo -e "${BLUE}Environment 'forge-env' exists. Skipping.${NC}"
 else
-    echo -e "${GREEN}[4/7] Creating Python 3.10 environment...${NC}"
+    echo -e "${GREEN}[4/7] Creating Python $PYTHON_VERSION environment...${NC}"
     conda create -n forge-env python=$PYTHON_VERSION -y
 fi
+
+exit 1
 
 if { conda list -n forge | grep "python" | grep -q $PYTHON_VERSION; }; then
     echo -e "${BLUE}Python $PYTHON_VERSION is already installed. Skipping.${NC}"
@@ -90,7 +92,7 @@ conda activate forge-env
 
 if [ ! -d "$INSTALL_DIR" ]; then
     echo -e "${GREEN}[5/7] Downloading WebUI Forge...${NC}"
-    
+
     #git clone --depth 1 https://github.com/lllyasviel/stable-diffusion-webui-forge.git "$INSTALL_DIR"
     # Attempt 1: Git Clone (Optimized)
     #if git clone --depth 1 https://github.com/lllyasviel/stable-diffusion-webui-forge.git "$HOME/stable-diffusion-webui-forge"; then
