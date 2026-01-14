@@ -20,11 +20,13 @@ NC='\033[0m'
 CURRENT_DIR=$(pwd 2>/dev/null || echo ".")
 HOME_DIR="$HOME"
 INSTALLS_DIR="$HOME_DIR"
+ENV_NAME="forge-env"
 
 echo "Current dir: ${CURRENT_DIR}"
 echo "Home dir: ${HOME_DIR}"
 echo -e "${GREEN}Installations dir: ${INSTALLS_DIR}${NC}"
 echo ""
+
 
 # Paths
 DEFFUSION_DIR="$INSTALLS_DIR/stable-diffusion-webui-forge"
@@ -72,14 +74,12 @@ else
 fi
 
 # 4. Create Environment
-if { conda env list | grep -q 'forge-env'; }; then
-    echo -e "${BLUE}Environment 'forge-env' exists. Skipping.${NC}"
+if { conda env list | grep -q "$ENV_NAME"; }; then
+    echo -e "${BLUE}Environment $ENV_NAME exists. Skipping.${NC}"
 else
     echo -e "${GREEN}[4/7] Creating Python $PYTHON_VERSION environment...${NC}"
-    conda create -n forge-env python=$PYTHON_VERSION -y
+    conda create -n $ENV_NAME python=$PYTHON_VERSION -y
 fi
-
-exit 1
 
 if { conda list -n forge | grep "python" | grep -q $PYTHON_VERSION; }; then
     echo -e "${BLUE}Python $PYTHON_VERSION is already installed. Skipping.${NC}"
@@ -88,7 +88,8 @@ else
     conda install python=$PYTHON_VERSION -y
 fi
 
-conda activate forge-env
+conda activate $ENV_NAME
+
 
 if [ ! -d "$INSTALL_DIR" ]; then
     echo -e "${GREEN}[5/7] Downloading WebUI Forge...${NC}"
@@ -100,7 +101,7 @@ if [ ! -d "$INSTALL_DIR" ]; then
         echo -e "${BLUE}Git clone successful.${NC}"
     else
         echo -e "${RED}Git clone failed again. Switching to ZIP download method...${NC}"
-        
+        exit 1
         # Attempt 2: ZIP Download (Bypasses Git Protocol completely)
         wget -O forge.zip https://github.com/lllyasviel/stable-diffusion-webui-forge/archive/refs/heads/main.zip
         unzip forge.zip
