@@ -14,19 +14,21 @@ BLUE='\033[0;34m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-#wget -qO - https://raw.githubusercontent.com/Abomb777/scrap-bash/refs/heads/main/scrapper.sh | bash -s -- 
+#wget -qO - https://raw.githubusercontent.com/Anton-ewc/ewc-img-ai/refs/heads/main/installer.sh | bash -s -- 
 
 # Get current directory, fallback to . if pwd fails (can happen when piped)
 CURRENT_DIR=$(pwd 2>/dev/null || echo ".")
+HOME_DIR="$HOME"
+INSTALLS_DIR="$HOME_DIR"
 
-echo "Rinning in ${CURRENT_DIR}"
-exit 1
+echo "Current dir: ${CURRENT_DIR}"
+echo "Home dir: ${HOME_DIR}"
+echo "Installations dir: ${INSTALLS_DIR}"
 
 # Paths
-INSTALL_DIR="$HOME/stable-diffusion-webui-forge"
-CONDA_DIR="$HOME/miniconda3"
-MODEL_DIR="$INSTALL_DIR/models/Stable-diffusion"
-MODEL_DIR="$HOME/stable-diffusion-webui-forge/models/Stable-diffusion"
+DEFFUSION_DIR="$INSTALLS_DIR/stable-diffusion-webui-forge"
+CONDA_DIR="$INSTALLS_DIR/miniconda3"
+MODEL_DIR="$DEFFUSION_DIR/models/Stable-diffusion"
 MODEL_URL="https://huggingface.co/Comfy-Org/flux1-schnell/resolve/main/flux1-schnell-fp8.safetensors"
 
 echo -e "${BLUE}Starting Final Fix Installer...${NC}"
@@ -43,6 +45,7 @@ git config --global http.postBuffer 524288000
 git config --global http.lowSpeedLimit 0
 git config --global http.lowSpeedTime 999999
 
+exit 1
 # 3. Install Miniconda
 if [ ! -d "$CONDA_DIR" ]; then
     echo -e "${GREEN}[3/7] Installing Miniconda...${NC}"
