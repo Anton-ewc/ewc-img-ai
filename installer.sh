@@ -59,7 +59,7 @@ if [ ! -d "$CONDA_DIR" ]; then
     #bash miniconda.sh -b -p "$HOME/miniconda3"
     #rm miniconda.sh
 else
-    echo -e "${BLUE}Miniconda already installed.${NC}"
+    echo -e "${BLUE}[3/7]Miniconda already installed.${NC}"
 fi
 
 
@@ -74,17 +74,18 @@ else
 fi
 
 # 4. Create Environment
+echo -e "${GREEN}[4/7] Creating environment $ENV_NAME...${NC}"
 if { conda env list | grep -q "$ENV_NAME"; }; then
     echo -e "${BLUE}Environment $ENV_NAME exists. Skipping.${NC}"
 else
-    echo -e "${GREEN}[4/7] Creating Python $PYTHON_VERSION environment...${NC}"
+    echo -e "${GREEN}Creating Python $PYTHON_VERSION environment...${NC}"
     conda create -n $ENV_NAME python=$PYTHON_VERSION -y
 fi
 
 if { conda list -n forge | grep "python" | grep -q $PYTHON_VERSION; }; then
     echo -e "${BLUE}Python $PYTHON_VERSION is already installed. Skipping.${NC}"
 else
-    echo -e "${GREEN}[4/7] Installing Python $PYTHON_VERSION...${NC}"
+    echo -e "${GREEN}Installing Python $PYTHON_VERSION...${NC}"
     conda install python=$PYTHON_VERSION -y
 fi
 
@@ -92,6 +93,7 @@ echo -e "${GREEN}[5/7] Activating environment $ENV_NAME...${NC}"
 conda init $ENV_NAME
 conda activate $ENV_NAME
 
+exit 1
 
 if [ ! -d "$INSTALL_DIR" ]; then
     echo -e "${GREEN}[5/7] Downloading WebUI Forge...${NC}"
