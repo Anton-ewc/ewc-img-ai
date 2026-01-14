@@ -90,7 +90,7 @@ else
 fi
 
 echo -e "${GREEN}[5/7] Activating environment $ENV_NAME...${NC}"
-conda init $ENV_NAME
+#conda init $ENV_NAME
 conda activate $ENV_NAME
 
 exit 1
