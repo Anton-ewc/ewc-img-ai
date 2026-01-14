@@ -6,6 +6,7 @@
 # ==========================================
 
 set -e
+#set +e  # Don't exit on error - continue execution
 
 # Colors
 GREEN='\033[0;32m'
@@ -13,36 +14,49 @@ BLUE='\033[0;34m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+#wget -qO - https://raw.githubusercontent.com/Abomb777/scrap-bash/refs/heads/main/scrapper.sh | bash -s -- 
+
+# Get current directory, fallback to . if pwd fails (can happen when piped)
+CURRENT_DIR=$(pwd 2>/dev/null || echo ".")
+
+echo "Rinning in ${CURRENT_DIR}"
+exit 1
+
 # Paths
 INSTALL_DIR="$HOME/stable-diffusion-webui-forge"
 CONDA_DIR="$HOME/miniconda3"
 MODEL_DIR="$INSTALL_DIR/models/Stable-diffusion"
+MODEL_DIR="$HOME/stable-diffusion-webui-forge/models/Stable-diffusion"
 MODEL_URL="https://huggingface.co/Comfy-Org/flux1-schnell/resolve/main/flux1-schnell-fp8.safetensors"
 
 echo -e "${BLUE}Starting Final Fix Installer...${NC}"
 
-# 1. CRITICAL GIT FIXES (Solves "curl 92" and "RPC failed")
-echo -e "${GREEN}[1/7] Applying Git Network Fixes (Force HTTP/1.1)...${NC}"
+# 1. Install Dependencies (Added 'unzip' for backup method)
+echo -e "${GREEN}[1/7] Installing system tools...${NC}"
+sudo apt update -y
+sudo apt install -y wget git unzip libgl1 libglib2.0-0 google-perftools
+
+# 2. CRITICAL GIT FIXES (Solves "curl 92" and "RPC failed")
+echo -e "${GREEN}[2/7] Applying Git Network Fixes (Force HTTP/1.1)...${NC}"
 git config --global http.version HTTP/1.1
 git config --global http.postBuffer 524288000
 git config --global http.lowSpeedLimit 0
 git config --global http.lowSpeedTime 999999
 
-# 2. Install Dependencies (Added 'unzip' for backup method)
-echo -e "${GREEN}[2/7] Installing system tools...${NC}"
-sudo apt update -y
-sudo apt install -y wget git unzip libgl1 libglib2.0-0 google-perftools
-
 # 3. Install Miniconda
 if [ ! -d "$CONDA_DIR" ]; then
     echo -e "${GREEN}[3/7] Installing Miniconda...${NC}"
-    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-    bash miniconda.sh -b -p "$CONDA_DIR"
-    rm miniconda.sh
+	wget -qO - https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh | bash -s --
+    #wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    #bash miniconda.sh -b -p "$HOME/miniconda3"
+    #bash miniconda.sh -b -p "$CONDA_DIR"
+    #bash miniconda.sh -b -p "$HOME/miniconda3"
+    #rm miniconda.sh
 else
     echo -e "${BLUE}Miniconda already installed.${NC}"
 fi
 
+#source "$HOME/miniconda3/bin/activate"
 source "$CONDA_DIR/bin/activate"
 
 # 4. Create Environment
@@ -62,6 +76,7 @@ if [ -d "$INSTALL_DIR" ]; then
 fi
 
 # Attempt 1: Git Clone (Optimized)
+#if git clone --depth 1 https://github.com/lllyasviel/stable-diffusion-webui-forge.git "$HOME/stable-diffusion-webui-forge"; then
 if git clone --depth 1 https://github.com/lllyasviel/stable-diffusion-webui-forge.git "$INSTALL_DIR"; then
     echo -e "${BLUE}Git clone successful.${NC}"
 else
@@ -77,11 +92,13 @@ fi
 
 # 6. Download FLUX Model
 echo -e "${GREEN}[6/7] Downloading FLUX.1 [schnell] Model...${NC}"
+#mkdir -p "$HOME/stable-diffusion-webui-forge/models/Stable-diffusion"
 mkdir -p "$MODEL_DIR"
 if [ -f "$MODEL_DIR/flux1-schnell-fp8.safetensors" ]; then
     echo -e "${BLUE}Model exists.${NC}"
 else
     # Retry loop for model download
+    #wget -c -O "$HOME/stable-diffusion-webui-forge/models/Stable-diffusion/flux1-schnell-fp8.safetensors" "https://huggingface.co/Comfy-Org/flux1-schnell/resolve/main/flux1-schnell-fp8.safetensors" --progress=bar:force --tries=5
     wget -c -O "$MODEL_DIR/flux1-schnell-fp8.safetensors" "$MODEL_URL" --progress=bar:force --tries=5
 fi
 
@@ -116,6 +133,7 @@ cd ~/stable-diffusion-webui-forge
 # We use sed to find the check (checking for id 0) and comment it out
 #sed -i 's/if \[ $(id -u) -eq 0 \]/if [ false ]/' webui.sh
 sed -i 's/can_run_as_root=0/can_run_as_root=0/' webui.sh
+sed -i 's/can_run_as_root=0/can_run_as_root=0/' /root/stable-diffusion-webui-forge/webui.sh
 
 # 3. Enable remote access (Required if you are on a headless server)
 # This adds "--listen" so you can connect from another computer
