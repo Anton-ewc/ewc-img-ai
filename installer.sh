@@ -94,7 +94,7 @@ echo -e "${GREEN}[5/7] Activating environment $ENV_NAME...${NC}"
 eval "$($CONDA_DIR/bin/conda shell.bash hook)"
 conda activate $ENV_NAME
 
-
+# 5. Download WebUI Forge (The "Fail-Safe" Method)
 if [ ! -d "$DEFFUSION_DIR" ]; then
     echo -e "${GREEN}[5/7] Downloading WebUI Forge...${NC}"
 
@@ -117,11 +117,6 @@ else
     echo -e "${BLUE}WebUI Forge already exists. Skipping.${NC}"
 fi
 
-exit 1
-
-
-# 5. Download WebUI Forge (The "Fail-Safe" Method)
-#echo -e "${GREEN}[5/7] Downloading WebUI Forge...${NC}"
 
 # Remove previous broken attempts
 #if [ -d "$INSTALL_DIR" ]; then
@@ -129,18 +124,20 @@ exit 1
 #fi
 
 
-
 # 6. Download FLUX Model
-echo -e "${GREEN}[6/7] Downloading FLUX.1 [schnell] Model...${NC}"
-#mkdir -p "$HOME/stable-diffusion-webui-forge/models/Stable-diffusion"
-mkdir -p "$MODEL_DIR"
 if [ -f "$MODEL_DIR/flux1-schnell-fp8.safetensors" ]; then
-    echo -e "${BLUE}Model exists.${NC}"
+    echo -e "${GREEN}[6/7] Model flux1 exists.${NC}"
 else
+    echo -e "${GREEN}[6/7] Downloading FLUX.1 [schnell] Model...${NC}"
+    exit 1
+    #mkdir -p "$HOME/stable-diffusion-webui-forge/models/Stable-diffusion"
+    mkdir -p "$MODEL_DIR"
     # Retry loop for model download
     #wget -c -O "$HOME/stable-diffusion-webui-forge/models/Stable-diffusion/flux1-schnell-fp8.safetensors" "https://huggingface.co/Comfy-Org/flux1-schnell/resolve/main/flux1-schnell-fp8.safetensors" --progress=bar:force --tries=5
     wget -c -O "$MODEL_DIR/flux1-schnell-fp8.safetensors" "$MODEL_URL" --progress=bar:force --tries=5
 fi
+
+exit 1
 
 # 7. Create Launcher
 echo -e "${GREEN}[7/7] Creating launcher...${NC}"
