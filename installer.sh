@@ -22,6 +22,21 @@ HOME_DIR="$HOME"
 INSTALLS_DIR="$HOME_DIR"
 ENV_NAME="forge-env"
 
+API_PASSWORD=$1
+
+while getopts "p:h" opt; do
+    case $opt in
+        p) API_PASSWORD=$OPTARG ;;
+        h) echo "Usage: $0 -p <password> -h"; exit 0;;
+        *) echo "Invalid option: -$OPTARG" >&2; exit 1;;
+    esac
+done
+
+if [ -z "$API_PASSWORD" ]; then
+    echo "Error: API password is required"
+    exit 1
+fi
+
 echo "Current dir: ${CURRENT_DIR}"
 echo "Home dir: ${HOME_DIR}"
 echo -e "${GREEN}Installations dir: ${INSTALLS_DIR}${NC}"
@@ -160,7 +175,8 @@ else
     #git config --global http.version HTTP/1.1
     #./webui.sh
     #python launch.py --listen --enable-insecure-extension-access
-    python launch.py --listen --enable-insecure-extension-access --cuda-malloc --no-half-vae
+    #python launch.py --listen --enable-insecure-extension-access --cuda-malloc --no-half-vae
+    python launch.py --listen --api --gradio-auth "admin:$API_PASSWORD" --enable-insecure-extension-access --cuda-malloc --no-half-vae
 EOT
 chmod +x "$INSTALLS_DIR/run_forge.sh"
 fi
