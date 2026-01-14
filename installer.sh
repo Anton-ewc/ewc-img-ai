@@ -137,7 +137,8 @@ else
     wget -c -O "$MODEL_DIR/flux1-schnell-fp8.safetensors" "$MODEL_URL" --progress=bar:force --tries=5
 fi
 
-
+# Patch webui.sh to remove the "root" check
+sed -i 's/can_run_as_root=0/can_run_as_root=1/' $DEFFUSION_DIR/webui.sh
 
 # 7. Create Launcher
 echo -e "${GREEN}[7/7] Creating launcher...${NC}"
@@ -154,9 +155,10 @@ else
     git config --global http.version HTTP/1.1
     ./webui.sh
 EOT
+chmod +x "$INSTALLS_DIR/run_forge.sh"
 fi
-exit 1
-chmod +x run_forge.sh
+
+
 
 echo -e "${GREEN}==========================================${NC}"
 echo -e "${GREEN}       INSTALLATION COMPLETE!             ${NC}"
@@ -164,23 +166,24 @@ echo -e "${GREEN}==========================================${NC}"
 echo -e "Run this command to start:"
 echo -e "${BLUE}./run_forge.sh${NC}"
 
-
+cd $INSTALLS_DIR
+./run_forge.sh
 
 #cd /workspace/
 
 # 1. Enter the directory
-cd ~/stable-diffusion-webui-forge
+#cd ~/stable-diffusion-webui-forge
 
 # 2. Patch webui.sh to remove the "root" check
 # We use sed to find the check (checking for id 0) and comment it out
 #sed -i 's/if \[ $(id -u) -eq 0 \]/if [ false ]/' webui.sh
-sed -i 's/can_run_as_root=0/can_run_as_root=0/' webui.sh
-sed -i 's/can_run_as_root=0/can_run_as_root=0/' /root/stable-diffusion-webui-forge/webui.sh
+#sed -i 's/can_run_as_root=0/can_run_as_root=0/' webui.sh
+#sed -i 's/can_run_as_root=0/can_run_as_root=0/' /root/stable-diffusion-webui-forge/webui.sh
 
 # 3. Enable remote access (Required if you are on a headless server)
 # This adds "--listen" so you can connect from another computer
 #sed -i 's/#export COMMANDLINE_ARGS=""/export COMMANDLINE_ARGS="--listen --enable-insecure-extension-access"/' webui-user.sh
 
 # 4. Run the launcher again
-cd ..
-./run_forge.sh
+#cd ..
+#./run_forge.sh
