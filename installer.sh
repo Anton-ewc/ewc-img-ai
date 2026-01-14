@@ -40,7 +40,12 @@ echo -e "${BLUE}Starting Final Fix Installer...${NC}"
 # 1. Install Dependencies (Added 'unzip' for backup method)
 echo -e "${GREEN}[1/7] Installing system tools...${NC}"
 sudo apt update -y
-sudo apt install -y wget git unzip libgl1 libglib2.0-0 google-perftools
+#sudo apt install -y wget git unzip libgl1 libglib2.0-0 google-perftools
+sudo apt install -y wget git unzip libgl1 libglib2.0-0 google-perftools curl pkg-config libcairo2-dev
+sudo apt install -y build-essential python3-dev libjpeg-dev zlib1g-dev libpng-dev libtiff-dev libfreetype6-dev liblcms2-dev libwebp-dev libharfbuzz-dev libfribidi-dev libxcb1-dev
+
+python3 -m pip install --upgrade pip setuptools wheel
+pip install Pillow
 
 # 2. CRITICAL GIT FIXES (Solves "curl 92" and "RPC failed")
 echo -e "${GREEN}[2/7] Applying Git Network Fixes (Force HTTP/1.1)...${NC}"
@@ -150,10 +155,12 @@ else
     #!/bin/bash
     source "$CONDA_DIR/bin/activate"
     conda activate forge-env
-    cd "$INSTALLS_DIR"
+    cd "$DEFFUSION_DIR"
     # Force Git updates to use HTTP 1.1 inside the app too
     #git config --global http.version HTTP/1.1
-    ./webui.sh
+    #./webui.sh
+    #python launch.py --listen --enable-insecure-extension-access
+    python launch.py --listen --enable-insecure-extension-access --cuda-malloc --no-half-vae
 EOT
 chmod +x "$INSTALLS_DIR/run_forge.sh"
 fi
