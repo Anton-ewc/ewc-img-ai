@@ -90,13 +90,10 @@ else
 fi
 
 echo -e "${GREEN}[5/7] Activating environment $ENV_NAME...${NC}"
-
-
-#conda init $ENV_NAME
-
+# Initialize conda for this shell session (avoids needing 'conda init' globally)
+eval "$($CONDA_DIR/bin/conda shell.bash hook)"
 conda activate $ENV_NAME
 
-exit 1
 
 if [ ! -d "$INSTALL_DIR" ]; then
     echo -e "${GREEN}[5/7] Downloading WebUI Forge...${NC}"
