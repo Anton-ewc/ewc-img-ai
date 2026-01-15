@@ -169,7 +169,7 @@ echo -e "${GREEN}[7/7] Creating launcher...${NC}"
 if [ -f "$INSTALLS_DIR/run_forge.sh" ]; then
     echo -e "${BLUE}Launcher already exists. Skipping.${NC}"
 else
-    exit 1
+    #exit 1
     cat <<EOT > run_forge.sh
     #!/bin/bash
     source "$CONDA_DIR/bin/activate"
