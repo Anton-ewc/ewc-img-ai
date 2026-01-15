@@ -76,8 +76,8 @@ if [ ! -d "$CONDA_DIR" ]; then
 	#wget -qO - https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh | bash -s --
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
     bash miniconda.sh -b -p "$INSTALLS_DIR/miniconda3"
-    bash miniconda.sh -b -p "$CONDA_DIR"
-    bash miniconda.sh -b -p "$INSTALLS_DIR/miniconda3"
+    #bash miniconda.sh -b -p "$CONDA_DIR"
+    #bash miniconda.sh -b -p "$INSTALLS_DIR/miniconda3"
     rm miniconda.sh
 else
     echo -e "${GREEN}[3/7]Miniconda already installed.${NC}"
