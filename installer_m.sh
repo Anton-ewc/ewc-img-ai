@@ -170,7 +170,7 @@ if [ -f "$INSTALLS_DIR/run_forge.sh" ]; then
     echo -e "${BLUE}Launcher already exists. Skipping.${NC}"
 else
     #exit 1
-    cat <<EOT > run_forge.sh
+    cat <<EOT > $INSTALLS_DIR/run_forge.sh
     #!/bin/bash
     source "$CONDA_DIR/bin/activate"
     conda activate forge-env
