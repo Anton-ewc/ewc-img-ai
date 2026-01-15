@@ -153,7 +153,7 @@ if [ -f "$MODEL_DIR/$MODELFILE" ]; then
     echo -e "${GREEN}[6/7] Model flux1 exists.${NC}"
 else
     echo -e "${GREEN}[6/7] Downloading FLUX.1 [schnell] Model...${NC}"
-    exit 1
+    #exit 1
     #mkdir -p "$HOME/stable-diffusion-webui-forge/models/Stable-diffusion"
     mkdir -p "$MODEL_DIR"
     # Retry loop for model download
