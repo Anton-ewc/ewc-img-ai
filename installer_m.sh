@@ -106,7 +106,7 @@ else
     conda create -n $ENV_NAME python=$PYTHON_VERSION -y
 fi
 
-if { conda list -n forge | grep "python" | grep -q $PYTHON_VERSION; }; then
+if { conda list -n "$ENV_NAME" | grep "python" | grep -q $PYTHON_VERSION; }; then
     echo -e "${BLUE}Python $PYTHON_VERSION is already installed. Skipping.${NC}"
 else
     echo -e "${GREEN}Installing Python $PYTHON_VERSION...${NC}"
