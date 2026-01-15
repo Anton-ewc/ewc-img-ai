@@ -66,7 +66,7 @@ if [ ! -d "$CONDA_DIR" ]; then
     bash miniconda.sh -b -p "$CONDA_DIR"
     rm miniconda.sh
 fi
-source "$CONDA_DIR/bin/activate"
+source "$CONDA_DIR/bin/activate" ""
 
 # 3. Create & Setup Environment
 echo -e "${GREEN}[3/7] Setting up Environment...${NC}"
@@ -103,8 +103,7 @@ fi
 echo -e "${GREEN}[6/7] Creating launcher...${NC}"
 cat <<EOT > $INSTALLS_DIR/run_forge.sh
 #!/bin/bash
-source "$CONDA_DIR/bin/activate"
-conda activate $ENV_NAME
+source "$CONDA_DIR/bin/activate" $ENV_NAME
 cd "$DEFFUSION_DIR"
 # Optimization for 50-series: bf16 is faster and more stable than full precision
 python launch.py --listen --api --gradio-auth "admin:$API_PASSWORD" \
