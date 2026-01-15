@@ -196,6 +196,7 @@ echo -e "${BLUE}./run_forge.sh${NC}"
 cd $INSTALLS_DIR
 ./run_forge.sh
 
+
 #cd /workspace/
 
 # 1. Enter the directory
