@@ -47,8 +47,11 @@ echo ""
 DEFFUSION_DIR="$INSTALLS_DIR/stable-diffusion-webui-forge"
 CONDA_DIR="$INSTALLS_DIR/miniconda3"
 MODEL_DIR="$DEFFUSION_DIR/models/Stable-diffusion"
+#MODELFILE="flux1-schnell-fp8.safetensors"
 #MODEL_URL="https://huggingface.co/Comfy-Org/flux1-schnell/resolve/main/flux1-schnell-fp8.safetensors"
-MODEL_URL="https://huggingface.co/kp-forks/Flux-uncensored/blob/main/lora.safetensors"
+MODELFILE="lora.safetensors"
+#MODEL_URL="https://huggingface.co/kp-forks/Flux-uncensored/blob/main/lora.safetensors"
+MODEL_URL="https://huggingface.co/kp-forks/Flux-uncensored/resolve/main/$MODELFILE"
 PYTHON_VERSION="3.10"
 
 echo -e "${BLUE}Starting Final Fix Installer...${NC}"
@@ -146,7 +149,7 @@ fi
 
 
 # 6. Download FLUX Model
-if [ -f "$MODEL_DIR/flux1-schnell-fp8.safetensors" ]; then
+if [ -f "$MODEL_DIR/$MODELFILE" ]; then
     echo -e "${GREEN}[6/7] Model flux1 exists.${NC}"
 else
     echo -e "${GREEN}[6/7] Downloading FLUX.1 [schnell] Model...${NC}"
@@ -155,7 +158,7 @@ else
     mkdir -p "$MODEL_DIR"
     # Retry loop for model download
     #wget -c -O "$HOME/stable-diffusion-webui-forge/models/Stable-diffusion/flux1-schnell-fp8.safetensors" "https://huggingface.co/Comfy-Org/flux1-schnell/resolve/main/flux1-schnell-fp8.safetensors" --progress=bar:force --tries=5
-    wget -c -O "$MODEL_DIR/flux1-schnell-fp8.safetensors" "$MODEL_URL" --progress=bar:force --tries=5
+    wget -c -O "$MODEL_DIR/$MODELFILE" "$MODEL_URL" --progress=bar:force --tries=5
 fi
 
 # Patch webui.sh to remove the "root" check
