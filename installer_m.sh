@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # ==========================================
-# FLUX.1 [schnell] + WebUI Forge Auto-Installer
-# (v6: HTTP/1.1 Force + ZIP Fallback Edition)
+# RTX 50-Series Optimized Forge Installer
+# Fixes: CUDA sm_120, joblib, and LoRA paths
 # ==========================================
 
 set -e
@@ -27,13 +27,12 @@ API_PASSWORD=$1
 while getopts "p:h" opt; do
     case $opt in
         p) API_PASSWORD=$OPTARG ;;
-        h) echo "Usage: $0 -p <password> -h"; exit 0;;
-        *) echo "Invalid option: -$OPTARG" >&2; exit 1;;
+        h) echo "Usage: $0 -p <password>"; exit 0;;
     esac
 done
 
 if [ -z "$API_PASSWORD" ]; then
-    echo "Error: API password is required"
+    echo -e "${RED}Error: API password is required (-p password)${NC}"
     exit 1
 fi
 
@@ -46,172 +45,72 @@ echo ""
 # Paths
 DEFFUSION_DIR="$INSTALLS_DIR/stable-diffusion-webui-forge"
 CONDA_DIR="$INSTALLS_DIR/miniconda3"
-MODEL_DIR="$DEFFUSION_DIR/models/Stable-diffusion"
-#MODELFILE="flux1-schnell-fp8.safetensors"
-#MODEL_URL="https://huggingface.co/Comfy-Org/flux1-schnell/resolve/main/flux1-schnell-fp8.safetensors"
+# FIX: LoRAs MUST go in the Lora folder, not Stable-diffusion
+MODEL_DIR="$DEFFUSION_DIR/models/Lora"
+CHECKPOINT_DIR="$DEFFUSION_DIR/models/Stable-diffusion"
 MODELFILE="lora.safetensors"
-#MODEL_URL="https://huggingface.co/kp-forks/Flux-uncensored/blob/main/lora.safetensors"
 MODEL_URL="https://huggingface.co/kp-forks/Flux-uncensored/resolve/main/$MODELFILE"
 PYTHON_VERSION="3.10"
 
-echo -e "${BLUE}Starting Final Fix Installer...${NC}"
+echo -e "${BLUE}Starting RTX 50-Series Installer...${NC}"
 
-# 1. Install Dependencies (Added 'unzip' for backup method)
+# 1. Install System Dependencies
 echo -e "${GREEN}[1/7] Installing system tools...${NC}"
 sudo apt update -y
-#sudo apt install -y wget git unzip libgl1 libglib2.0-0 google-perftools
-sudo apt install -y wget git unzip libgl1 libglib2.0-0 google-perftools curl pkg-config libcairo2-dev
-sudo apt install -y build-essential python3-dev libjpeg-dev zlib1g-dev libpng-dev libtiff-dev libfreetype6-dev liblcms2-dev libwebp-dev libharfbuzz-dev libfribidi-dev libxcb1-dev
+sudo apt install -y wget git unzip libgl1 libglib2.0-0 google-perftools curl build-essential python3-dev
 
-python3 -m pip install --upgrade pip setuptools wheel
-pip install joblib Pillow
-
-# 2. CRITICAL GIT FIXES (Solves "curl 92" and "RPC failed")
-echo -e "${GREEN}[2/7] Applying Git Network Fixes (Force HTTP/1.1)...${NC}"
-git config --global http.version HTTP/1.1
-git config --global http.postBuffer 524288000
-git config --global http.lowSpeedLimit 0
-git config --global http.lowSpeedTime 999999
-
-# 3. Install Miniconda
+# 2. Install/Activate Conda
 if [ ! -d "$CONDA_DIR" ]; then
-    echo -e "${BLUE}[3/7] Installing Miniconda...${NC}"
-	#wget -qO - https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh | bash -s --
+    echo -e "${BLUE}[2/7] Installing Miniconda...${NC}"
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-    bash miniconda.sh -b -p "$INSTALLS_DIR/miniconda3"
-    #bash miniconda.sh -b -p "$CONDA_DIR"
-    #bash miniconda.sh -b -p "$INSTALLS_DIR/miniconda3"
+    bash miniconda.sh -b -p "$CONDA_DIR"
     rm miniconda.sh
-else
-    echo -e "${GREEN}[3/7]Miniconda already installed.${NC}"
 fi
+source "$CONDA_DIR/bin/activate"
 
-
-if [ -z "$CONDA_DEFAULT_ENV" ]; then
-    echo "${BLUE}No Conda environment is active.${NC}"
-    echo "${BLUE}Activating Conda.${NC}"
-	#source "$HOME/miniconda3/bin/activate"
-	source "$CONDA_DIR/bin/activate"
-else
-    echo "Active environment: $CONDA_DEFAULT_ENV"
-    echo "Location: $CONDA_PREFIX"
-fi
-
-# 4. Create Environment
-echo -e "${GREEN}[4/7] Creating environment $ENV_NAME...${NC}"
-if { conda env list | grep -q "$ENV_NAME"; }; then
-    echo -e "${BLUE}Environment $ENV_NAME exists. Skipping.${NC}"
-else
-    echo -e "${GREEN}Creating Python $PYTHON_VERSION environment...${NC}"
-    conda create -n $ENV_NAME python=$PYTHON_VERSION -y
-fi
-
-if { conda list -n "$ENV_NAME" | grep "python" | grep -q $PYTHON_VERSION; }; then
-    echo -e "${BLUE}Python $PYTHON_VERSION is already installed. Skipping.${NC}"
-else
-    echo -e "${GREEN}Installing Python $PYTHON_VERSION...${NC}"
-    conda install python=$PYTHON_VERSION -y
-fi
-
-echo -e "${GREEN}[5/7] Activating environment $ENV_NAME...${NC}"
-# Initialize conda for this shell session (avoids needing 'conda init' globally)
-eval "$($CONDA_DIR/bin/conda shell.bash hook)"
+# 3. Create & Setup Environment
+echo -e "${GREEN}[3/7] Setting up Environment...${NC}"
+conda create -n $ENV_NAME python=$PYTHON_VERSION -y || echo "Env exists"
 conda activate $ENV_NAME
 
-# 5. Download WebUI Forge (The "Fail-Safe" Method)
+# CRITICAL: Install RTX 50-series compatible Torch (sm_120 support)
+echo -e "${BLUE}Installing CUDA 12.4+ Compatible PyTorch for RTX 5060 Ti...${NC}"
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+pip install joblib insightface Pillow setuptools wheel
+
+# 4. Download Forge
 if [ ! -d "$DEFFUSION_DIR" ]; then
-    echo -e "${GREEN}[5/7] Downloading WebUI Forge...${NC}"
-
-    #git clone --depth 1 https://github.com/lllyasviel/stable-diffusion-webui-forge.git "$INSTALL_DIR"
-    # Attempt 1: Git Clone (Optimized)
-    #if git clone --depth 1 https://github.com/lllyasviel/stable-diffusion-webui-forge.git "$HOME/stable-diffusion-webui-forge"; then
-    if git clone --depth 1 https://github.com/lllyasviel/stable-diffusion-webui-forge.git "$DEFFUSION_DIR"; then
-        echo -e "${BLUE}Git clone successful.${NC}"
-    else
-        echo -e "${RED}Git clone failed again. Switching to ZIP download method...${NC}"
-        exit 1
-        # Attempt 2: ZIP Download (Bypasses Git Protocol completely)
-        wget -O forge.zip https://github.com/lllyasviel/stable-diffusion-webui-forge/archive/refs/heads/main.zip
-        unzip forge.zip
-        mv stable-diffusion-webui-forge-main "$DEFFUSION_DIR"
-        rm forge.zip
-        echo -e "${BLUE}ZIP installation successful.${NC}"
-    fi
-else
-    echo -e "${BLUE}WebUI Forge already exists. Skipping.${NC}"
+    echo -e "${GREEN}[4/7] Cloning Forge...${NC}"
+    git clone --depth 1 https://github.com/lllyasviel/stable-diffusion-webui-forge.git "$DEFFUSION_DIR"
 fi
 
+# 5. Download LoRA and Base Model
+echo -e "${GREEN}[5/7] Handling Models...${NC}"
+mkdir -p "$MODEL_DIR"
+mkdir -p "$CHECKPOINT_DIR"
 
-# Remove previous broken attempts
-#if [ -d "$INSTALL_DIR" ]; then
-#    rm -rf "$INSTALL_DIR"
-#fi
-
-
-# 6. Download FLUX Model
-if [ -f "$MODEL_DIR/$MODELFILE" ]; then
-    echo -e "${GREEN}[6/7] Model $MODELFILE exists.${NC}"
-else
-    echo -e "${GREEN}[6/7] Downloading $MODELFILE [schnell] Model...${NC}"
-    #exit 1
-    #mkdir -p "$HOME/stable-diffusion-webui-forge/models/Stable-diffusion"
-    mkdir -p "$MODEL_DIR"
-    # Retry loop for model download
-    #wget -c -O "$HOME/stable-diffusion-webui-forge/models/Stable-diffusion/flux1-schnell-fp8.safetensors" "https://huggingface.co/Comfy-Org/flux1-schnell/resolve/main/flux1-schnell-fp8.safetensors" --progress=bar:force --tries=5
-    wget -c -O "$MODEL_DIR/$MODELFILE" "$MODEL_URL" --progress=bar:force --tries=5
+if [ ! -f "$MODEL_DIR/$MODELFILE" ]; then
+    wget -c -O "$MODEL_DIR/$MODELFILE" "$MODEL_URL"
 fi
 
-# Patch webui.sh to remove the "root" check
-sed -i 's/can_run_as_root=0/can_run_as_root=1/' $DEFFUSION_DIR/webui.sh
+# IMPORTANT: You need at least one BASE model (Checkpoint) or Forge won't start
+if [ ! -f "$CHECKPOINT_DIR/sd_xl_base_1.0.safetensors" ]; then
+    echo -e "${BLUE}Downloading SDXL Base as primary checkpoint...${NC}"
+    wget -c -O "$CHECKPOINT_DIR/sd_xl_base_1.0.safetensors" "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors"
+fi
 
-# 7. Create Launcher
-echo -e "${GREEN}[7/7] Creating launcher...${NC}"
-if [ -f "$INSTALLS_DIR/run_forge.sh" ]; then
-    echo -e "${BLUE}Launcher already exists. Skipping.${NC}"
-else
-    #exit 1
-    cat <<EOT > $INSTALLS_DIR/run_forge.sh
-    #!/bin/bash
-    source "$CONDA_DIR/bin/activate"
-    conda activate forge-env
-    cd "$DEFFUSION_DIR"
-    # Force Git updates to use HTTP 1.1 inside the app too
-    #git config --global http.version HTTP/1.1
-    #./webui.sh
-    #python launch.py --listen --enable-insecure-extension-access
-    #python launch.py --listen --enable-insecure-extension-access --cuda-malloc --no-half-vae
-    python launch.py --listen --api --gradio-auth "admin:$API_PASSWORD" --enable-insecure-extension-access --cuda-malloc --no-half-vae
+# 6. Create Launcher
+echo -e "${GREEN}[6/7] Creating launcher...${NC}"
+cat <<EOT > $INSTALLS_DIR/run_forge.sh
+#!/bin/bash
+source "$CONDA_DIR/bin/activate"
+conda activate $ENV_NAME
+cd "$DEFFUSION_DIR"
+# Optimization for 50-series: bf16 is faster and more stable than full precision
+python launch.py --listen --api --gradio-auth "admin:$API_PASSWORD" \
+--enable-insecure-extension-access --cuda-malloc --bf16
 EOT
 chmod +x "$INSTALLS_DIR/run_forge.sh"
-fi
 
-
-
-echo -e "${GREEN}==========================================${NC}"
-echo -e "${GREEN}       INSTALLATION COMPLETE!             ${NC}"
-echo -e "${GREEN}==========================================${NC}"
-echo -e "Run this command to start:"
-echo -e "${BLUE}./run_forge.sh${NC}"
-
-cd $INSTALLS_DIR
+echo -e "${GREEN}Fixes applied. Starting WebUI...${NC}"
 ./run_forge.sh
-
-
-#cd /workspace/
-
-# 1. Enter the directory
-#cd ~/stable-diffusion-webui-forge
-
-# 2. Patch webui.sh to remove the "root" check
-# We use sed to find the check (checking for id 0) and comment it out
-#sed -i 's/if \[ $(id -u) -eq 0 \]/if [ false ]/' webui.sh
-#sed -i 's/can_run_as_root=0/can_run_as_root=0/' webui.sh
-#sed -i 's/can_run_as_root=0/can_run_as_root=0/' /root/stable-diffusion-webui-forge/webui.sh
-
-# 3. Enable remote access (Required if you are on a headless server)
-# This adds "--listen" so you can connect from another computer
-#sed -i 's/#export COMMANDLINE_ARGS=""/export COMMANDLINE_ARGS="--listen --enable-insecure-extension-access"/' webui-user.sh
-
-# 4. Run the launcher again
-#cd ..
-#./run_forge.sh
