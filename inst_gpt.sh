@@ -3,6 +3,11 @@ set -e
 # ==========================================
 # Full Installer Script with Your Models
 # ==========================================
+# wget -qO - https://raw.githubusercontent.com/Anton-ewc/ewc-img-ai/refs/heads/main/inst_gpt.sh | bash -s -- 
+
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+NC='\033[0m'
 
 PASSWORD=""
 CURRENT_DIR=$(pwd 2>/dev/null || echo ".")
