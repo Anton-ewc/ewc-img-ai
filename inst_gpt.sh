@@ -40,6 +40,7 @@ echo -e "${BLUE}Current dir: ${CURRENT_DIR}${NC}"
 echo -e "${BLUE}Home dir: ${HOME_DIR}${NC}"
 echo -e "${BLUE}Installations dir: ${INSTALLS_DIR}${NC}"
 echo ""
+
 read -p "Press Enter to continue..."
 
 exit 0
